@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/**
+ * ENUM
+ */
+enum Role {
+  MAHASISWA
+  DOSEN
+  KAPRODI
+}
+
+enum PengajuanStatus {
+  MENUNGGU
+  DISETUJUI
+  DITOLAK
+}
+
+/**
+ * USER (AUTH CORE)
+ */
+model UserProfile {
+  id          String   @id @default(uuid())
+  clerkUserId String   @unique
+  email       String
+  role        Role
+  createdAt   DateTime @default(now())
+
+  mahasiswa Mahasiswa?
+  dosen     Dosen?
+}
+
+/**
+ * MAHASISWA
+ */
+model Mahasiswa {
+  id        String @id @default(uuid())
+  profileId String @unique
+  nim       String @unique
+  nama      String
+
+  profile   UserProfile @relation(fields: [profileId], references: [id])
+  pengajuan Pengajuan?
+}
+
+/**
+ * DOSEN
+ */
+model Dosen {
+  id            String  @id @default(uuid())
+  profileId     String  @unique
+  nama          String
+  kodeAkses     String  @unique
+  kuotaMax      Int
+  kuotaTerpakai Int     @default(0)
+  isActive      Boolean @default(true)
+
+  profile   UserProfile  @relation(fields: [profileId], references: [id])
+  skills    DosenSkill[]
+  pengajuan Pengajuan[]
+}
+
+/**
+ * ROLE CODE (MHS & KAPRODI)
+ */
+model RoleCode {
+  id        String   @id @default(uuid())
+  role      Role     @unique
+  codeHash  String
+  createdAt DateTime @default(now())
+}
+
+/**
+ * SKILL
+ */
+model Skill {
+  id   String @id @default(uuid())
+  nama String @unique
+
+  dosen DosenSkill[]
+}
+
+/**
+ * DOSEN - SKILL
+ */
+model DosenSkill {
+  id      String @id @default(uuid())
+  dosenId String
+  skillId String
+
+  dosen Dosen @relation(fields: [dosenId], references: [id])
+  skill Skill @relation(fields: [skillId], references: [id])
+
+  @@unique([dosenId, skillId])
+}
+
+/**
+ * PENGAJUAN
+ */
+model Pengajuan {
+  id          String          @id @default(uuid())
+  mahasiswaId String          @unique
+  dosenId     String
+  status      PengajuanStatus @default(MENUNGGU)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  mahasiswa Mahasiswa @relation(fields: [mahasiswaId], references: [id])
+  dosen     Dosen     @relation(fields: [dosenId], references: [id])
+}
