@@ -1,69 +1,120 @@
-// import crypto from "node:crypto";
-// import bcrypt from "bcryptjs";
-// import { PrismaClient, Role } from "../lib/generated/prisma/client";
-// import { PrismaPg } from "@prisma/adapter-pg";
+import bcrypt from "bcrypt";
+import prisma from "@/lib/db";
+import { Role } from "@/lib/generated/prisma/client";
 
-// // 🔌 Adapter khusus CLI / seed
-// const adapter = new PrismaPg({
-//   connectionString: process.env.DATABASE_URL!,
-// });
+/* ===================== DOSEN SEED ===================== */
+const seedDosen = async () => {
+  console.log("🌱 Seeding DOSEN PEMBIMBING...");
 
-// const prisma = new PrismaClient({ adapter });
+  /* ===================== SKILL ===================== */
+  const skills = [
+    "Web Development",
+    "Machine Learning",
+    "Computer Vision",
+    "Data Mining",
+    "UI/UX",
+    "Internet of Things",
+  ];
 
-// async function main() {
-//   console.log("🌱 Seeding database...");
+  const skillRecords = await Promise.all(
+    skills.map((nama) =>
+      prisma.skill.upsert({
+        where: { nama },
+        update: {},
+        create: { nama },
+      })
+    )
+  );
 
-//   /* ===================== SKILL ===================== */
-//   await prisma.skill.createMany({
-//     data: [
-//       { nama: "Artificial Intelligence" },
-//       { nama: "Data Science" },
-//       { nama: "Web Development" },
-//     ],
-//     skipDuplicates: true,
-//   });
+  const skillMap = Object.fromEntries(skillRecords.map((s) => [s.nama, s.id]));
 
-//   /* ===================== ROLE CODE ===================== */
-//   const roleCodes = [
-//     { role: Role.MAHASISWA, code: "MHS-2025" },
-//     { role: Role.KAPRODI, code: "KAP-2025" },
-//   ];
+  /* ===================== DOSEN DATA ===================== */
+  const dosenList = [
+    {
+      nama: "Dr. Viddi Mardiansyah, S.Si., M.T.",
+      email: "viddi@widyatama.ac.id",
+      kodePlain: "DOSEN-VIDDI-2025",
+      kuotaMax: 10,
+      skills: ["Web Development", "UI/UX"],
+    },
+    {
+      nama: "Dr. Andi Wijaya, M.Kom.",
+      email: "andi@widyatama.ac.id",
+      kodePlain: "DOSEN-ANDI-2025",
+      kuotaMax: 8,
+      skills: ["Machine Learning", "Data Mining"],
+    },
+    {
+      nama: "Ir. Rina Kusuma, M.T.",
+      email: "rina@widyatama.ac.id",
+      kodePlain: "DOSEN-RINA-2025",
+      kuotaMax: 6,
+      skills: ["Computer Vision", "Machine Learning"],
+    },
+  ];
 
-//   for (const rc of roleCodes) {
-//     await prisma.roleCode.upsert({
-//       where: { role: rc.role },
-//       update: {},
-//       create: {
-//         role: rc.role,
-//         codeHash: await bcrypt.hash(rc.code, 10),
-//       },
-//     });
-//   }
+  /* ===================== RESET DOSEN ===================== */
+  await prisma.dosenSkill.deleteMany();
+  await prisma.dosen.deleteMany({
+    where: {
+      profile: { role: Role.DOSEN },
+    },
+  });
+  await prisma.userProfile.deleteMany({
+    where: { role: Role.DOSEN },
+  });
 
-//   /* ===================== USER KAPRODI ===================== */
-//   const kaprodiPassword = await bcrypt.hash("kaprodi123", 10);
+  /* ===================== CREATE DOSEN ===================== */
+  for (const dosen of dosenList) {
+    const kodeHash = await bcrypt.hash(dosen.kodePlain, 10);
 
-//   await prisma.user.upsert({
-//     where: { email: "kaprodi@widyatama.ac.id" },
-//     update: {},
-//     create: {
-//       id: crypto.randomUUID(),
-//       email: "kaprodi@widyatama.ac.id",
-//       passwordHash: kaprodiPassword,
-//       role: Role.KAPRODI,
-//       isActive: true,
-//     },
-//   });
+    const profile = await prisma.userProfile.create({
+      data: {
+        clerkUserId: `seed-${dosen.email}`,
+        email: dosen.email,
+        role: Role.DOSEN,
+      },
+    });
 
-//   console.log("✅ Seed selesai dengan aman");
-// }
+    const dosenRecord = await prisma.dosen.create({
+      data: {
+        profileId: profile.id,
+        nama: dosen.nama,
+        kodeAkses: kodeHash, // 🔐 HASHED
+        kuotaMax: dosen.kuotaMax,
+        isActive: true,
+      },
+    });
 
-// main()
-//   .then(async () => {
-//     await prisma.$disconnect();
-//   })
-//   .catch(async (e) => {
-//     console.error("❌ Seed error:", e);
-//     await prisma.$disconnect();
-//     process.exit(1);
-//   });
+    for (const skillName of dosen.skills) {
+      await prisma.dosenSkill.create({
+        data: {
+          dosenId: dosenRecord.id,
+          skillId: skillMap[skillName],
+        },
+      });
+    }
+
+    // hanya ditampilkan sekali (DEV ONLY)
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("👨‍🏫 DOSEN :", dosen.nama);
+    console.log("📧 EMAIL :", dosen.email);
+    console.log("🔑 KODE  :", dosen.kodePlain);
+  }
+
+  console.log("✅ DOSEN SEEDED DENGAN AMAN");
+};
+
+/* ===================== MAIN ===================== */
+const main = async () => {
+  await seedDosen();
+};
+
+main()
+  .catch((err) => {
+    console.error("❌ Seed error:", err);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });

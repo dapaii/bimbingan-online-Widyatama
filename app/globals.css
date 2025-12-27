@@ -123,3 +123,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  .min-h-105 {
+    min-height: 26.25rem; /* 420px */
+  }
+}

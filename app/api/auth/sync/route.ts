@@ -1,23 +1,20 @@
 import { auth, clerkClient } from "@clerk/nextjs/server";
 import prisma from "@/lib/db";
 import { Role } from "@/lib/generated/prisma/client";
+import { isWidyatamaEmail } from "@/lib/role";
 
-export const POST = async (): Promise<Response> => {
+export const POST = async () => {
   const { userId } = await auth();
-  if (!userId) {
-    return new Response("Unauthorized", { status: 401 });
-  }
+  if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const clerk = await clerkClient();
   const user = await clerk.users.getUser(userId);
 
   const email =
-    user.emailAddresses.find(
-      (e) => e.id === user.primaryEmailAddressId
-    )?.emailAddress ?? "";
+    user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)
+      ?.emailAddress ?? "";
 
-  // 🔒 RULE MAHASISWA
-  if (!email.endsWith("@widyatama.ac.id")) {
+  if (!isWidyatamaEmail(email)) {
     return new Response("Forbidden", { status: 403 });
   }
 
@@ -35,7 +32,6 @@ export const POST = async (): Promise<Response> => {
     });
   }
 
-  // 🔥 SIMPAN ROLE KE CLERK
   await clerk.users.updateUser(userId, {
     publicMetadata: {
       role: "MAHASISWA",
@@ -43,5 +39,5 @@ export const POST = async (): Promise<Response> => {
     },
   });
 
-  return Response.json({ status: "ok" });
+  return Response.json({ ok: true });
 };
