@@ -2,9 +2,9 @@ import MahasiswaDashboard from "@/components/dashboard/mahasiswa/MahasiswaDashbo
 
 const Page = () => {
   return (
-    <div>
+    <>
       <MahasiswaDashboard />
-    </div>
+    </>
   )
 }
 

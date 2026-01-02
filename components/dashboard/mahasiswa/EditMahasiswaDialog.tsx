@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle,} from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil } from "lucide-react";
+import { toast } from "sonner";
 
 type Props = {
   nama: string | null;
@@ -13,28 +19,47 @@ type Props = {
 
 const EditMahasiswaDialog = ({ nama, nim }: Props) => {
   const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+
   const [form, setForm] = useState({
     nama: nama ?? "",
     nim: nim ?? "",
   });
-  const [loading, setLoading] = useState(false);
 
   const submit = async () => {
-    setLoading(true);
-
-    const res = await fetch("/api/mahasiswa/update", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-
-    if (res.ok) {
-      window.location.reload();
-    } else {
-      alert("Gagal menyimpan data");
+    if (!form.nama.trim() || !form.nim.trim()) {
+      toast.error("Nama dan NIM wajib diisi");
+      return;
     }
 
-    setLoading(false);
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/mahasiswa/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          nama: form.nama.trim(),
+          nim: form.nim.trim(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        // ⬅️ PENTING: baca error dari API kamu
+        toast.error(data.error);
+        return;
+      }
+
+      toast.success("Data mahasiswa berhasil diperbarui");
+      setOpen(false);
+      window.location.reload();
+    } catch {
+      toast.error("Terjadi kesalahan jaringan");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -45,49 +70,60 @@ const EditMahasiswaDialog = ({ nama, nim }: Props) => {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="w-[90vw] max-w-2xl p-6 h-[95vw]">
+        <DialogContent className="sm:max-w-lg p-6 flex flex-col gap-5">
           <DialogHeader>
             <DialogTitle>Edit Data Mahasiswa</DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-6">
-            <div>
-              <p className="text-sm text-muted-foreground">
-                Perbarui data identitas mahasiswa kamu
-              </p>
+          <p className="text-sm text-muted-foreground">
+            Perbarui data identitas mahasiswa kamu
+          </p>
+
+          <div className="grid gap-4">
+            <div className="space-y-1">
+              <label className="text-sm font-medium">Nama</label>
+              <Input
+                value={form.nama}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    nama: e.target.value,
+                  }))
+                }
+              />
             </div>
 
-            <div className="grid gap-4">
-              <div className="space-y-1">
-                <label className="text-sm font-medium">Nama</label>
-                <Input
-                  value={form.nama}
-                  onChange={(e) =>
-                    setForm({ ...form, nama: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm font-medium">NIM</label>
-                <Input
-                  value={form.nim}
-                  onChange={(e) =>
-                    setForm({ ...form, nim: e.target.value })
-                  }
-                />
-              </div>
+            <div className="space-y-1">
+              <label className="text-sm font-medium">NIM</label>
+              <Input
+                value={form.nim}
+                onChange={(e) =>
+                  setForm((prev) => ({
+                    ...prev,
+                    nim: e.target.value,
+                  }))
+                }
+              />
             </div>
+          </div>
 
-            <div className="pt-2">
-              <Button
-                className="w-full"
-                onClick={submit}
-                disabled={loading}
-              >
-                {loading ? "Menyimpan..." : "Simpan Perubahan"}
-              </Button>
-            </div>
+          <div className="flex gap-2 pt-2">
+            <Button
+              className="flex-1"
+              onClick={submit}
+              disabled={loading}
+            >
+              {loading ? "Menyimpan..." : "Simpan Perubahan"}
+            </Button>
+
+            <Button
+              variant="outline"
+              className="flex-1"
+              onClick={() => setOpen(false)}
+              disabled={loading}
+            >
+              Batal
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

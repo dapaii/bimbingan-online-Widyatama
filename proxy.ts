@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 export default clerkMiddleware(async (auth, req) => {
   const pathname = req.nextUrl.pathname;
 
-  // ⛔ BYPASS TOTAL untuk API
+  // BYPASS TOTAL untuk API
   if (pathname.startsWith("/api/")) {
     return NextResponse.next();
   }

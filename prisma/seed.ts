@@ -1,113 +1,101 @@
-import bcrypt from "bcrypt";
 import prisma from "@/lib/db";
-import { Role } from "@/lib/generated/prisma/client";
+import { Role, PengajuanStatus } from "@/lib/generated/prisma/client";
 
-/* ===================== DOSEN SEED ===================== */
-const seedDosen = async () => {
-  console.log("🌱 Seeding DOSEN PEMBIMBING...");
+/* ===================== DATA MAHASISWA ===================== */
+const mahasiswaList = [
+  {
+    nama: "Ahmad Rizki",
+    nim: "4062210001",
+    email: "rizki@student.widyatama.ac.id",
+  },
+  {
+    nama: "Siti Aulia",
+    nim: "4062210002",
+    email: "aulia@student.widyatama.ac.id",
+  },
+  {
+    nama: "Bima Pratama",
+    nim: "4062210003",
+    email: "bima@student.widyatama.ac.id",
+  },
+];
 
-  /* ===================== SKILL ===================== */
-  const skills = [
-    "Web Development",
-    "Machine Learning",
-    "Computer Vision",
-    "Data Mining",
-    "UI/UX",
-    "Internet of Things",
-  ];
+/* ===================== MAIN SEED ===================== */
+const seedMahasiswaDanPengajuan = async () => {
+  console.log("🌱 Seeding MAHASISWA & PENGAJUAN...");
 
-  const skillRecords = await Promise.all(
-    skills.map((nama) =>
-      prisma.skill.upsert({
-        where: { nama },
-        update: {},
-        create: { nama },
-      })
-    )
-  );
-
-  const skillMap = Object.fromEntries(skillRecords.map((s) => [s.nama, s.id]));
-
-  /* ===================== DOSEN DATA ===================== */
-  const dosenList = [
-    {
-      nama: "Dr. Viddi Mardiansyah, S.Si., M.T.",
-      email: "viddi@widyatama.ac.id",
-      kodePlain: "DOSEN-VIDDI-2025",
-      kuotaMax: 10,
-      skills: ["Web Development", "UI/UX"],
-    },
-    {
-      nama: "Dr. Andi Wijaya, M.Kom.",
-      email: "andi@widyatama.ac.id",
-      kodePlain: "DOSEN-ANDI-2025",
-      kuotaMax: 8,
-      skills: ["Machine Learning", "Data Mining"],
-    },
-    {
-      nama: "Ir. Rina Kusuma, M.T.",
-      email: "rina@widyatama.ac.id",
-      kodePlain: "DOSEN-RINA-2025",
-      kuotaMax: 6,
-      skills: ["Computer Vision", "Machine Learning"],
-    },
-  ];
-
-  /* ===================== RESET DOSEN ===================== */
-  await prisma.dosenSkill.deleteMany();
-  await prisma.dosen.deleteMany({
-    where: {
-      profile: { role: Role.DOSEN },
-    },
-  });
-  await prisma.userProfile.deleteMany({
-    where: { role: Role.DOSEN },
+  // ambil semua dosen aktif
+  const dosenList = await prisma.dosen.findMany({
+    where: { isActive: true },
   });
 
-  /* ===================== CREATE DOSEN ===================== */
-  for (const dosen of dosenList) {
-    const kodeHash = await bcrypt.hash(dosen.kodePlain, 10);
+  if (dosenList.length === 0) {
+    throw new Error(" Tidak ada dosen aktif. Jalankan seed dosen dulu.");
+  }
 
-    const profile = await prisma.userProfile.create({
-      data: {
-        clerkUserId: `seed-${dosen.email}`,
-        email: dosen.email,
-        role: Role.DOSEN,
+  let dosenIndex = 0;
+
+  for (const mhs of mahasiswaList) {
+    /* ===================== USER PROFILE ===================== */
+    const profile = await prisma.userProfile.upsert({
+      where: { clerkUserId: `seed-${mhs.email}` },
+      update: {},
+      create: {
+        clerkUserId: `seed-${mhs.email}`,
+        email: mhs.email,
+        role: Role.MAHASISWA,
       },
     });
 
-    const dosenRecord = await prisma.dosen.create({
-      data: {
+    /* ===================== MAHASISWA ===================== */
+    const mahasiswa = await prisma.mahasiswa.upsert({
+      where: { nim: mhs.nim },
+      update: {
+        nama: mhs.nama,
+      },
+      create: {
         profileId: profile.id,
-        nama: dosen.nama,
-        kodeAkses: kodeHash, // 🔐 HASHED
-        kuotaMax: dosen.kuotaMax,
-        isActive: true,
+        nim: mhs.nim,
+        nama: mhs.nama,
       },
     });
 
-    for (const skillName of dosen.skills) {
-      await prisma.dosenSkill.create({
+    /* ===================== PILIH DOSEN (ROTASI) ===================== */
+    const dosen = dosenList[dosenIndex % dosenList.length];
+    dosenIndex++;
+
+    /* ===================== BUAT PENGAJUAN ===================== */
+    const existing = await prisma.pengajuan.findUnique({
+      where: { mahasiswaId: mahasiswa.id },
+    });
+
+    if (!existing) {
+      await prisma.pengajuan.create({
         data: {
-          dosenId: dosenRecord.id,
-          skillId: skillMap[skillName],
+          mahasiswaId: mahasiswa.id,
+          dosenId: dosen.id,
+          status: PengajuanStatus.MENUNGGU,
+        },
+      });
+
+      // optional: naikkan kuota TERPAKAI kalau mau simulasi
+      await prisma.dosen.update({
+        where: { id: dosen.id },
+        data: {
+          kuotaTerpakai: { increment: 1 },
         },
       });
     }
 
-    // hanya ditampilkan sekali (DEV ONLY)
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("👨‍🏫 DOSEN :", dosen.nama);
-    console.log("📧 EMAIL :", dosen.email);
-    console.log("🔑 KODE  :", dosen.kodePlain);
+    console.log(`✅ Mahasiswa seeded: ${mhs.nama}`);
   }
 
-  console.log("✅ DOSEN SEEDED DENGAN AMAN");
+  console.log("🎉 SEED MAHASISWA + PENGAJUAN SELESAI");
 };
 
-/* ===================== MAIN ===================== */
+/* ===================== RUNNER ===================== */
 const main = async () => {
-  await seedDosen();
+  await seedMahasiswaDanPengajuan();
 };
 
 main()
