@@ -3,7 +3,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import type { ReactNode } from "react";
-import { GraduationCap, User, CheckCircle, Clock, XCircle, Info, Layers, AlertCircle,} from "lucide-react";
+import { GraduationCap, User, CheckCircle, Clock, XCircle, Info, Layers, AlertCircle, } from "lucide-react";
 import AjukanDosenDialog from "@/components/dashboard/mahasiswa/AjukanDosenDialog";
 import EditMahasiswaDialog from "@/components/dashboard/mahasiswa/EditMahasiswaDialog";
 
@@ -297,114 +297,114 @@ const MahasiswaDashboard = async () => {
 
           {/* RIGHT */}
           <div className="lg:col-span-4 space-y-4">
-<div className="rounded-xl border bg-card p-6 space-y-5">
-  {/* Header */}
-  <div className="flex flex-col gap-1">
-    <h2 className="text-lg font-semibold">Aksi</h2>
-    <p className="text-sm text-muted-foreground">
-      Kelola proses pengajuan dosen pembimbing kamu di sini.
-    </p>
-  </div>
+            <div className="rounded-xl border bg-card p-6 space-y-5">
+              {/* Header */}
+              <div className="flex flex-col gap-1">
+                <h2 className="text-lg font-semibold">Aksi</h2>
+                <p className="text-sm text-muted-foreground">
+                  Kelola proses pengajuan dosen pembimbing kamu di sini.
+                </p>
+              </div>
 
-  <div className="h-px w-full bg-muted" />
+              <div className="h-px w-full bg-muted" />
 
-  {/* BELUM ADA PENGAJUAN */}
-  {!pengajuan && (
-    <div className="space-y-3">
-      <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-        Kamu belum mengajukan dosen pembimbing.
-      </div>
+              {/* BELUM ADA PENGAJUAN */}
+              {!pengajuan && (
+                <div className="space-y-3">
+                  <div className="rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                    Kamu belum mengajukan dosen pembimbing.
+                  </div>
 
-      <AjukanDosenDialog
-        dosenList={await prisma.dosen.findMany({
-          where: {
-            isActive: true,
-            kuotaTerpakai: { lt: prisma.dosen.fields.kuotaMax },
-          },
-          include: {
-            skills: { include: { skill: true } },
-          },
-          orderBy: { kuotaTerpakai: "asc" },
-        })}
-      />
-    </div>
-  )}
+                  <AjukanDosenDialog
+                    dosenList={await prisma.dosen.findMany({
+                      where: {
+                        isActive: true,
+                        kuotaTerpakai: { lt: prisma.dosen.fields.kuotaMax },
+                      },
+                      include: {
+                        skills: { include: { skill: true } },
+                      },
+                      orderBy: { kuotaTerpakai: "asc" },
+                    })}
+                  />
+                </div>
+              )}
 
-  {/* STATUS MENUNGGU */}
-  {status === "MENUNGGU" && (
-    <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-      <Clock className="mt-0.5 h-4 w-4" />
-      <div>
-        <p className="font-medium text-foreground">
-          Pengajuan sedang direview
-        </p>
-        <p className="text-xs">
-          Dosen pembimbing sedang memeriksa pengajuan kamu.
-        </p>
-      </div>
-    </div>
-  )}
+              {/* STATUS MENUNGGU */}
+              {status === "MENUNGGU" && (
+                <div className="flex items-start gap-3 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                  <Clock className="mt-0.5 h-4 w-4" />
+                  <div>
+                    <p className="font-medium text-foreground">
+                      Pengajuan sedang direview
+                    </p>
+                    <p className="text-xs">
+                      Dosen pembimbing sedang memeriksa pengajuan kamu.
+                    </p>
+                  </div>
+                </div>
+              )}
 
-  {/* STATUS DITOLAK */}
-  {status === "DITOLAK" && (
-    <div className="space-y-4">
-      <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-        <AlertCircle className="mt-0.5 h-4 w-4" />
-        <div>
-          <p className="font-medium">Pengajuan ditolak</p>
-          <p className="text-xs">
-            Silakan ajukan ulang dengan memilih dosen pembimbing lain.
-          </p>
-        </div>
-      </div>
+              {/* STATUS DITOLAK */}
+              {status === "DITOLAK" && (
+                <div className="space-y-4">
+                  <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+                    <AlertCircle className="mt-0.5 h-4 w-4" />
+                    <div>
+                      <p className="font-medium">Pengajuan ditolak</p>
+                      <p className="text-xs">
+                        Silakan ajukan ulang dengan memilih dosen pembimbing lain.
+                      </p>
+                    </div>
+                  </div>
 
-      {/* TIMER COOLDOWN */}
-      {remainingMinutes > 0 ? (
-        <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
-          <Clock className="h-4 w-4" />
-          <span>
-            Kamu bisa mengajukan ulang dalam{" "}
-            <span className="font-semibold">
-              {remainingMinutes} menit
-            </span>
-          </span>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p className="text-xs text-muted-foreground">
-            Waktu tunggu selesai. Silakan ajukan kembali.
-          </p>
+                  {/* TIMER COOLDOWN */}
+                  {remainingMinutes > 0 ? (
+                    <div className="flex items-center gap-3 rounded-lg border bg-muted/30 p-4 text-sm text-muted-foreground">
+                      <Clock className="h-4 w-4" />
+                      <span>
+                        Kamu bisa mengajukan ulang dalam{" "}
+                        <span className="font-semibold">
+                          {remainingMinutes} menit
+                        </span>
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <p className="text-xs text-muted-foreground">
+                        Waktu tunggu selesai. Silakan ajukan kembali.
+                      </p>
 
-          <AjukanDosenDialog
-            dosenList={await prisma.dosen.findMany({
-              where: {
-                isActive: true,
-                kuotaTerpakai: { lt: prisma.dosen.fields.kuotaMax },
-              },
-              include: {
-                skills: { include: { skill: true } },
-              },
-              orderBy: { kuotaTerpakai: "asc" },
-            })}
-          />
-        </div>
-      )}
-    </div>
-  )}
+                      <AjukanDosenDialog
+                        dosenList={await prisma.dosen.findMany({
+                          where: {
+                            isActive: true,
+                            kuotaTerpakai: { lt: prisma.dosen.fields.kuotaMax },
+                          },
+                          include: {
+                            skills: { include: { skill: true } },
+                          },
+                          orderBy: { kuotaTerpakai: "asc" },
+                        })}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
 
-  {/* STATUS DISETUJUI */}
-  {status === "DISETUJUI" && (
-    <div className="flex items-start gap-3 rounded-lg border bg-green-500/10 p-4 text-sm text-green-700">
-      <CheckCircle className="mt-0.5 h-4 w-4" />
-      <div>
-        <p className="font-medium">Pengajuan disetujui</p>
-        <p className="text-xs">
-          Kamu sudah resmi memiliki dosen pembimbing.
-        </p>
-      </div>
-    </div>
-  )}
-</div>
+              {/* STATUS DISETUJUI */}
+              {status === "DISETUJUI" && (
+                <div className="flex items-start gap-3 rounded-lg border bg-green-500/10 p-4 text-sm text-green-700">
+                  <CheckCircle className="mt-0.5 h-4 w-4" />
+                  <div>
+                    <p className="font-medium">Pengajuan disetujui</p>
+                    <p className="text-xs">
+                      Kamu sudah resmi memiliki dosen pembimbing.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
 
 
             <div className="rounded-xl border bg-muted/30 p-4 text-xs text-muted-foreground">
